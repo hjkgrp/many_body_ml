@@ -14,8 +14,9 @@ classifiers = [
 ]
 
 dependencies = [
+  "pandas",
   "tensorflow",
   "scikit-learn",
-  "pandas",
+  "hyperopt",
   "pytest",
 ]
