@@ -1,0 +1,20 @@
+[project]
+name = "mbeml"
+version = "0.0.1"
+authors = [
+  { name="Ralf Meyer", email="meyer.ralf@yahoo.com" },
+]
+description = "Utilities for the many-body expansion based ML modelling of TMC properties"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+  "tensorflow",
+  "scikit-learn",
+  "pytest",
+]
