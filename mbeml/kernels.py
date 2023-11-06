@@ -92,8 +92,9 @@ class Masking(sk_kernels.NormalizedKernelMixin, sk_kernels.Kernel):
 
 
 class TwoBodyKernel(sk_kernels.Kernel):
-    def __init__(self, kernel):
+    def __init__(self, kernel, n_core_features=7):
         self.kernel = kernel
+        self.n_core_features = n_core_features
 
     @property
     def theta(self):
@@ -113,28 +114,46 @@ class TwoBodyKernel(sk_kernels.Kernel):
         return self.kernel == b.kernel
 
     def __call__(self, X, Y=None, eval_gradient=False):
+        # Build a (n * 6) x (n_core_features + n_lig_features) array
         n = X.shape[0]
-
         X_reshaped = np.concatenate(
-            [np.tile(X[:, np.newaxis, :7], (1, 6, 1)), X[:, 7:].reshape(-1, 6, 33)],
+            [
+                np.tile(X[:, np.newaxis, : self.n_core_features], (1, 6, 1)),
+                X[:, self.n_core_features :].reshape(n, 6, -1),
+            ],
             axis=-1,
-        ).reshape(6 * n, -1)
+        ).reshape(n * 6, -1)
 
         if eval_gradient:
             if Y is not None:
                 raise ValueError("Gradient can only be evaluated when Y is None.")
+            # Call kernel using X_reshaped
             K, K_grad = self.kernel(X_reshaped, eval_gradient=True)
-            return K.reshape(n, 6, n, 6).sum(axis=(1, 3)), K_grad.reshape(
-                n, 6, n, 6, -1
-            ).sum(axis=(1, 3))
+            # Reshape and sum over the 6 ligands
+            return (
+                K.reshape(n, 6, n, 6).sum(axis=(1, 3)) / 36,
+                K_grad.reshape(n, 6, n, 6, -1).sum(axis=(1, 3)) / 36,
+            )
         if Y is None:
-            return self.kernel(X_reshaped).reshape(n, 6, n, 6).sum(axis=(1, 3))
+            # Call kernel using X_reshaped, reshape, and sum over the 6 ligands
+            return self.kernel(X_reshaped).reshape(n, 6, n, 6).sum(axis=(1, 3)) / 36
+
+        # Since Y is not none:
+        # Build a (m * 6) x (n_core_features + n_lig_features) array
         m = Y.shape[0]
         Y_reshaped = np.concatenate(
-            [np.tile(Y[:, np.newaxis, :7], (1, 6, 1)), Y[:, 7:].reshape(-1, 6, 33)],
+            [
+                np.tile(Y[:, np.newaxis, : self.n_core_features], (1, 6, 1)),
+                Y[:, self.n_core_features :].reshape(m, 6, -1),
+            ],
             axis=-1,
-        ).reshape(6 * m, -1)
-        return self.kernel(X_reshaped, Y_reshaped).reshape(n, 6, m, 6).sum(axis=(1, 3))
+        ).reshape(m * 6, -1)
+        # Call kernel using X_reshaped and Y_reshaped, reshape,
+        # and sum over the 6 ligands
+        return (
+            self.kernel(X_reshaped, Y_reshaped).reshape(n, 6, m, 6).sum(axis=(1, 3))
+            / 36
+        )
 
     def diag(self, X):
         return np.diag(self(X))
@@ -148,8 +167,9 @@ class TwoBodyKernel(sk_kernels.Kernel):
 
 
 class TwoBodyKernelNaive(sk_kernels.Kernel):
-    def __init__(self, kernel):
+    def __init__(self, kernel, n_core_features=7):
         self.kernel = kernel
+        self.n_core_features = n_core_features
 
     @property
     def theta(self):
@@ -169,29 +189,38 @@ class TwoBodyKernelNaive(sk_kernels.Kernel):
         return self.kernel == b.kernel
 
     def __call__(self, X, Y=None, eval_gradient=False):
+        if eval_gradient:
+            raise NotImplementedError(
+                "The TwoBodyKernelNaive implementation does not support gradients. "
+                "Use TwoBodyKernel instead."
+            )
+
         n_features = X.shape[1]
+        n_lig_features = (n_features - self.n_core_features) // 6
         if Y is None:
             Y = X
-        elif eval_gradient:
-            raise ValueError("Gradient can only be evaluated when Y is None.")
 
         K = np.zeros([X.shape[0], Y.shape[0]])
         for i in range(6):
             # Using masks to ensure we are only working on views instead of copies
             # of the arrays
             mask_i = np.zeros(n_features, dtype=bool)
-            mask_i[:7] = True
-            mask_i[7 + i * 33 : 7 + (i + 1) * 33] = True
+            mask_i[: self.n_core_features] = True
+            mask_i[
+                self.n_core_features
+                + i * n_lig_features : self.n_core_features
+                + (i + 1) * n_lig_features
+            ] = True
             for j in range(6):
                 mask_j = np.zeros(n_features, dtype=bool)
-                mask_j[:7] = True
-                mask_j[7 + j * 33 : 7 + (j + 1) * 33] = True
+                mask_j[: self.n_core_features] = True
+                mask_j[
+                    self.n_core_features
+                    + j * n_lig_features : self.n_core_features
+                    + (j + 1) * n_lig_features
+                ] = True
                 K += self.kernel(X[:, mask_i], Y[:, mask_j])
-        if eval_gradient:
-            K_gradient = np.empty((X.shape[0], X.shape[0], 0))
-            return K, K_gradient
-        else:
-            return K
+        return K / 36
 
     def diag(self, X):
         return np.diag(self(X))
