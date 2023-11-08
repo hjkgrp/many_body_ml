@@ -3,6 +3,20 @@ import pandas as pd
 from typing import Optional, List, Tuple
 
 
+target_long_names = {
+    "sse": "spin_splitting_kcal/mol",
+    "homo": ["energetic_homo_ls_eV", "energetic_homo_hs_eV"],
+    "lumo": ["energetic_lumo_ls_eV", "energetic_lumo_hs_eV"],
+    "gap": ["energetic_gap_ls_eV", "energetic_gap_hs_eV"],
+    "orbitals": [
+        "energetic_homo_ls_eV",
+        "energetic_homo_hs_eV",
+        "energetic_lumo_ls_eV",
+        "energetic_lumo_hs_eV",
+    ],
+}
+
+
 def generate_standard_racs_names(
     depth: int = 3,
     properties: Optional[List[str]] = None,
