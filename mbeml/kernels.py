@@ -59,7 +59,7 @@ class Normalization(sk_kernels.NormalizedKernelMixin, sk_kernels.Kernel):
         return self.kernel.is_stationary()
 
 
-class Masking(sk_kernels.NormalizedKernelMixin, sk_kernels.Kernel):
+class Masking(sk_kernels.Kernel):
     def __init__(self, mask, kernel):
         self.mask = mask
         self.kernel = kernel
@@ -82,6 +82,9 @@ class Masking(sk_kernels.NormalizedKernelMixin, sk_kernels.Kernel):
         return self.kernel(
             X[:, self.mask], Y=Y[:, self.mask], eval_gradient=eval_gradient
         )
+
+    def diag(self, X):
+        return self.kernel.diag(X[:, self.mask])
 
     def __repr__(self):
         return "Masking({0})".format(self.kernel)

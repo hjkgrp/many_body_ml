@@ -39,6 +39,12 @@ def test_two_body_kernel_gradient(test_data):
     np.testing.assert_allclose(K_grad_num, K_grad.squeeze(), atol=1e-6)
 
 
+def test_two_body_kernel_diag(test_data):
+    X, _ = test_data
+    kernel = TwoBodyKernel(RBF())
+    np.testing.assert_allclose(kernel.diag(X), np.diag(kernel(X)))
+
+
 def test_two_body_permutation(test_data):
     """Checks that the order of ligands does not matter"""
     X, Y = test_data
