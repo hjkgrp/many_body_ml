@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from typing import Optional, List, Tuple
 
 
@@ -41,6 +42,16 @@ def generate_ligand_racs_names():
     for i in range(1, 7):
         names.extend([f"lig{i}_charge"] + [f"lig{i}_racs{j:02d}" for j in range(32)])
     return names
+
+
+def get_racs_features(df: pd.DataFrame, features: str):
+    if features == "standard_racs":
+        racs_names = generate_standard_racs_names()
+    elif features == "ligand_racs":
+        racs_names = generate_ligand_racs_names()
+    else:
+        raise NotImplementedError(f"Unknown features {features}")
+    return df[racs_names].values
 
 
 def get_core_features(df):
