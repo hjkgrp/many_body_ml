@@ -1,4 +1,5 @@
 import tensorflow as tf
+from typing import List
 from mbeml.nn_layers import (
     AddSpinEncoding,
     TwoBodyPrep,
@@ -6,6 +7,7 @@ from mbeml.nn_layers import (
     ThreeBodyPrepFeatureSym,
     ThreeBodyMask,
 )
+from mbeml.constants import cis_pairs, trans_pairs
 
 
 def build_mlp(
@@ -15,8 +17,8 @@ def build_mlp(
     kernel_regularizer=tf.keras.regularizers.L2(),
     dense_kw=None,
     final_kw=None,
-    dropout_rate=0.0,
-    name="mlp",
+    dropout_rate: float = 0.0,
+    name: str = "mlp",
 ):
     layers = []
     if dense_kw is None:
@@ -39,13 +41,13 @@ def build_mlp(
 
 
 def build_two_body_model(
-    two_body_units=[16, 8],
-    l2=0.01,
-    dropout_rate=0.0,
+    two_body_units: List[int] = [16, 8],
+    l2: float = 0.01,
+    dropout_rate: float = 0.0,
     racs_norm=None,
     output_norm=None,
-    spin_dependent=False,
-    num_outputs=1,
+    spin_dependent: bool = False,
+    num_outputs: int = 1,
 ):
     core_inp = tf.keras.Input(shape=(7,), name="core_input")
     ligands_inp = tf.keras.Input(shape=(6, 33), name="ligands_input")
@@ -91,25 +93,10 @@ def build_three_body_model(
     output_norm=None,
     spin_dependent=False,
     masked=False,
-    features_sym=False,
+    features_sym=True,
+    two_body_terms=True,
     num_outputs=1,
 ):
-    cis_pairs = [
-        (0, 1),
-        (0, 3),
-        (0, 4),
-        (0, 5),
-        (1, 2),
-        (1, 4),
-        (1, 5),
-        (2, 3),
-        (2, 4),
-        (2, 5),
-        (3, 4),
-        (3, 5),
-    ]
-    trans_pairs = [(0, 2), (1, 3), (4, 5)]
-
     core_inp = tf.keras.Input(shape=(7,), name="core_input")
     ligands_inp = tf.keras.Input(shape=(6, 33), name="ligands_input")
     if racs_norm is not None:
