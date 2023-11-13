@@ -40,6 +40,46 @@ def build_mlp(
     return tf.keras.Sequential(layers=layers, name=name)
 
 
+def build_nn_ensemble(models: List[tf.keras.Model], return_std=False) -> tf.keras.Model:
+    """_summary_
+
+    Parameters
+    ----------
+    models : List[tf.keras.Model]
+        _description_
+    return_std : bool, optional
+        _description_, by default False
+
+    Returns
+    -------
+    tf.keras.Model
+        _description_
+    """
+    input_shapes = models[0].input_shape
+    # Slice [1:] to remove batch size, following documentation of keras.Input
+    core_inp = tf.keras.Input(shape=input_shapes["core"][1:], name="core_input")
+    ligands_inp = tf.keras.Input(
+        shape=input_shapes["ligands"][1:], name="ligands_input"
+    )
+
+    stacked_output = tf.stack(
+        [model({"core": core_inp, "ligands": ligands_inp}) for model in models],
+        axis=0,
+        name="stacked_outputs",
+    )
+    if return_std:
+        outputs = tf.math.reduce_mean(stacked_output, axis=0), tf.math.reduce_std(
+            stacked_output, axis=0
+        )
+    else:
+        outputs = tf.math.reduce_mean(stacked_output, axis=0, name="mean")
+
+    model = tf.keras.models.Model(
+        inputs={"core": core_inp, "ligands": ligands_inp}, outputs=outputs
+    )
+    return model
+
+
 def build_two_body_model(
     two_body_units: List[int] = [16, 8],
     l2: float = 0.01,
