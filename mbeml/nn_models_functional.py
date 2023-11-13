@@ -104,14 +104,15 @@ def build_three_body_model(
     else:
         ligands_normed = ligands_inp
     # Two body layers
-    two_body_prep = TwoBodyPrep()
-    two_body_nn = build_mlp(
-        hidden_units=two_body_units,
-        num_outputs=num_outputs,
-        kernel_regularizer=tf.keras.regularizers.L2(l2),
-        dropout_rate=dropout_rate,
-        name="two_body_nn",
-    )
+    if two_body_terms:
+        two_body_prep = TwoBodyPrep()
+        two_body_nn = build_mlp(
+            hidden_units=two_body_units,
+            num_outputs=num_outputs,
+            kernel_regularizer=tf.keras.regularizers.L2(l2),
+            dropout_rate=dropout_rate,
+            name="two_body_nn",
+        )
     # Three body layers cis
     if features_sym:
         three_body_prep_cis = ThreeBodyPrepFeatureSym(
@@ -151,12 +152,13 @@ def build_three_body_model(
     if spin_dependent:
         core_spins = AddSpinEncoding()(core_inp)
         # Two body interactions
-        two_body_inputs = [
-            two_body_prep([core_spin, ligands_normed]) for core_spin in core_spins
-        ]
-        two_body_output = tf.concat(
-            [two_body_nn(inp) for inp in two_body_inputs], axis=-1
-        )
+        if two_body_terms:
+            two_body_inputs = [
+                two_body_prep([core_spin, ligands_normed]) for core_spin in core_spins
+            ]
+            two_body_output = tf.concat(
+                [two_body_nn(inp) for inp in two_body_inputs], axis=-1
+            )
         # Three body cis
         three_body_inputs_cis = [
             three_body_prep_cis([core_spin, ligands_normed]) for core_spin in core_spins
@@ -177,8 +179,9 @@ def build_three_body_model(
         three_body_input_trans = three_body_inputs_trans[0]
     else:
         # Two body interactions
-        two_body_input = two_body_prep([core_inp, ligands_normed])
-        two_body_output = two_body_nn(two_body_input)
+        if two_body_terms:
+            two_body_input = two_body_prep([core_inp, ligands_normed])
+            two_body_output = two_body_nn(two_body_input)
         # Three body cis
         three_body_input_cis = three_body_prep_cis([core_inp, ligands_normed])
         three_body_output_cis = three_body_nn_cis(three_body_input_cis)
@@ -187,7 +190,8 @@ def build_three_body_model(
         three_body_output_trans = three_body_nn_trans(three_body_input_trans)
 
     # Sum over the two body interactions
-    two_body_output = tf.reduce_sum(two_body_output, axis=-2)
+    if two_body_terms:
+        two_body_output = tf.reduce_sum(two_body_output, axis=-2)
     if not features_sym:
         # Average over the two permutations
         three_body_output_cis = tf.reduce_mean(three_body_output_cis, axis=-2)
@@ -204,9 +208,12 @@ def build_three_body_model(
     three_body_output_trans = tf.reduce_sum(three_body_output_trans, axis=-2)
 
     # Add all three outputs
-    output = tf.keras.layers.Add()(
-        [two_body_output, three_body_output_cis, three_body_output_trans]
-    )
+    if two_body_terms:
+        output = tf.keras.layers.Add()(
+            [two_body_output, three_body_output_cis, three_body_output_trans]
+        )
+    else:
+        output = tf.keras.layers.Add()([three_body_output_cis, three_body_output_trans])
     if output_norm is not None:
         output = output_norm(output, invert=True)
 
