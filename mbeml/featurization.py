@@ -1,20 +1,7 @@
 import numpy as np
 import pandas as pd
 from typing import Optional, List, Tuple
-
-
-target_long_names = {
-    "sse": "spin_splitting_kcal/mol",
-    "homo": ["energetic_homo_ls_eV", "energetic_homo_hs_eV"],
-    "lumo": ["energetic_lumo_ls_eV", "energetic_lumo_hs_eV"],
-    "gap": ["energetic_gap_ls_eV", "energetic_gap_hs_eV"],
-    "orbitals": [
-        "energetic_homo_ls_eV",
-        "energetic_homo_hs_eV",
-        "energetic_lumo_ls_eV",
-        "energetic_lumo_hs_eV",
-    ],
-}
+from mbeml.constants import LigandFeatures
 
 
 def generate_standard_racs_names(
@@ -58,10 +45,10 @@ def generate_ligand_racs_names():
     return names
 
 
-def get_racs_features(df: pd.DataFrame, features: str):
-    if features == "standard_racs":
+def get_ligand_features(df: pd.DataFrame, features: LigandFeatures):
+    if features is LigandFeatures.STANDARD_RACS:
         racs_names = generate_standard_racs_names()
-    elif features == "ligand_racs":
+    elif features is LigandFeatures.LIGAND_RACS:
         racs_names = generate_ligand_racs_names()
     else:
         raise NotImplementedError(f"Unknown features {features}")
