@@ -216,7 +216,7 @@ def build_three_body_model(
     return model
 
 
-def build_racs_model(
+def build_standard_racs_model(
     hidden_units=[16, 8],
     l2=0.01,
     dropout_rate=0.0,
