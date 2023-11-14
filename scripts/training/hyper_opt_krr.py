@@ -33,7 +33,7 @@ def load_data_krr(data_dir: Path, features: LigandFeatures, target: TargetProper
     df_val = pd.read_csv(data_dir / "validation_data.csv")
 
     ligs_train = get_ligand_features(df_train, features)
-    ligs_val = get_core_features(df_val, features)
+    ligs_val = get_ligand_features(df_val, features)
     if features is LigandFeatures.STANDARD_RACS:
         racs_norm = np.max(np.abs(ligs_train), axis=0)
         racs_norm[racs_norm < 1e-6] = 1.0
@@ -251,6 +251,6 @@ def main(model_type: ModelType, target: TargetProperty):
 
 if __name__ == "__main__":
     # See the definition of the two enums in mbeml.constants for possible values
-    model_type = ModelType.THREE_BODY
-    target = TargetProperty.ORBITALS
+    model_type = ModelType.TWO_BODY
+    target = TargetProperty.SSE
     main(model_type, target)
