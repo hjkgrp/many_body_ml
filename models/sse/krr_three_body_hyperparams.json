@@ -1,0 +1,1 @@
+{"l2": 0.005671189225841917, "three_body_cis_kernel": "Matern", "three_body_cis_length_scale": 2.806826564473118, "three_body_trans_kernel": "Matern", "three_body_trans_length_scale": 143.10796073853987, "two_body_kernel": "Matern", "two_body_length_scale": 2.5154789420191452}
