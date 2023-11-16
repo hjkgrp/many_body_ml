@@ -87,10 +87,15 @@ def build_two_body_model(
     racs_norm=None,
     output_norm=None,
     spin_dependent: bool = False,
+    num_core_features=7,
+    num_ligands=6,
+    num_ligand_features=184,
     num_outputs: int = 1,
 ):
-    core_inp = tf.keras.Input(shape=(7,), name="core_input")
-    ligands_inp = tf.keras.Input(shape=(6, 33), name="ligands_input")
+    core_inp = tf.keras.Input(shape=(num_core_features,), name="core_input")
+    ligands_inp = tf.keras.Input(
+        shape=(num_ligands, num_ligand_features), name="ligands_input"
+    )
     if racs_norm is not None:
         ligands_normed = racs_norm(ligands_inp)
     else:
@@ -134,15 +139,32 @@ def build_three_body_model(
     spin_dependent=False,
     masked=False,
     features_sym=True,
+    one_body_term=False,
     two_body_terms=True,
+    num_core_features=7,
+    num_ligands=6,
+    num_ligand_features=33,
     num_outputs=1,
 ):
-    core_inp = tf.keras.Input(shape=(7,), name="core_input")
-    ligands_inp = tf.keras.Input(shape=(6, 33), name="ligands_input")
+    core_inp = tf.keras.Input(shape=(num_core_features,), name="core_input")
+    ligands_inp = tf.keras.Input(
+        shape=(num_ligands, num_ligand_features), name="ligands_input"
+    )
     if racs_norm is not None:
         ligands_normed = racs_norm(ligands_inp)
     else:
         ligands_normed = ligands_inp
+    # One body term:
+    if one_body_term:
+        one_body_nn = build_mlp(
+            hidden_units=[],
+            num_outputs=num_outputs,
+            name="one_body_nn",
+        )
+        if spin_dependent:
+            raise NotImplementedError(
+                "Combination of spin dependent and one body term is not implemented."
+            )
     # Two body layers
     if two_body_terms:
         two_body_prep = TwoBodyPrep()
@@ -218,6 +240,8 @@ def build_three_body_model(
         three_body_input_cis = three_body_inputs_cis[0]
         three_body_input_trans = three_body_inputs_trans[0]
     else:
+        if one_body_term:
+            one_body_output = one_body_nn(core_inp)
         # Two body interactions
         if two_body_terms:
             two_body_input = two_body_prep([core_inp, ligands_normed])
@@ -248,12 +272,14 @@ def build_three_body_model(
     three_body_output_trans = tf.reduce_sum(three_body_output_trans, axis=-2)
 
     # Add all three outputs
+    mbe_terms = []
+    if one_body_term:
+        mbe_terms.append(one_body_output)
     if two_body_terms:
-        output = tf.keras.layers.Add()(
-            [two_body_output, three_body_output_cis, three_body_output_trans]
-        )
-    else:
-        output = tf.keras.layers.Add()([three_body_output_cis, three_body_output_trans])
+        mbe_terms.append(two_body_output)
+    mbe_terms.extend([three_body_output_cis, three_body_output_trans])
+    output = tf.keras.layers.Add()(mbe_terms)
+
     if output_norm is not None:
         output = output_norm(output, invert=True)
 
@@ -270,10 +296,12 @@ def build_standard_racs_model(
     racs_norm=None,
     output_norm=None,
     spin_dependent=False,
+    num_core_features=7,
+    num_ligand_features=184,
     num_outputs=1,
 ):
-    core_inp = tf.keras.Input(shape=(7,), name="core_input")
-    ligands_inp = tf.keras.Input(shape=(184,), name="ligands_input")
+    core_inp = tf.keras.Input(shape=(num_core_features,), name="core_input")
+    ligands_inp = tf.keras.Input(shape=(num_ligand_features,), name="ligands_input")
     if racs_norm is not None:
         ligands_normed = racs_norm(ligands_inp)
     else:
