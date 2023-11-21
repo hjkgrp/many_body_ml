@@ -6,6 +6,7 @@ if __name__ == "__main__":
     model = build_three_body_model(
         two_body_units=[64, 64],
         three_body_units=[64, 64],
+        num_ligand_features=32,
         num_outputs=4,
     )
     tf.keras.utils.plot_model(
