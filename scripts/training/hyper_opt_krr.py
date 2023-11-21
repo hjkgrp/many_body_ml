@@ -17,7 +17,13 @@ from mbeml.constants import (
     trans_pairs,
 )
 from sklearn.preprocessing import MaxAbsScaler
-from sklearn.gaussian_process.kernels import Kernel, RBF, Matern, DotProduct
+from sklearn.gaussian_process.kernels import (
+    Kernel,
+    RBF,
+    Matern,
+    DotProduct,
+    ConstantKernel,
+)
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_absolute_error
@@ -85,12 +91,16 @@ def build_model(
     kernel = Masking(core_mask, DotProduct(sigma_0=0.0, sigma_0_bounds="fixed"))
 
     if model_type is ModelType.STANDARD_RACS:
-        kernel += get_kernel_by_name(params["kernel"])(
+        kernel += ConstantKernel(
+            constant_value=params["c"], constant_value_bounds="fixed"
+        ) * get_kernel_by_name(params["kernel"])(
             length_scale=params["length_scale"],
             length_scale_bounds="fixed",
         )
     elif model_type in [ModelType.TWO_BODY, ModelType.THREE_BODY]:
-        kernel += TwoBodyKernel(
+        kernel += ConstantKernel(
+            constant_value=params["c2"], constant_value_bounds="fixed"
+        ) * TwoBodyKernel(
             get_kernel_by_name(params["two_body_kernel"])(
                 length_scale=params["two_body_length_scale"],
                 length_scale_bounds="fixed",
@@ -98,14 +108,18 @@ def build_model(
             n_core_features=n_core_features,
         )
         if model_type is ModelType.THREE_BODY:
-            kernel += ThreeBodyKernel(
+            kernel += ConstantKernel(
+                constant_value=params["c3_cis"], constant_value_bounds="fixed"
+            ) * ThreeBodyKernel(
                 get_kernel_by_name(params["three_body_cis_kernel"])(
                     length_scale=params["three_body_cis_length_scale"],
                     length_scale_bounds="fixed",
                 ),
                 pairs=cis_pairs,
             )
-            kernel += ThreeBodyKernel(
+            kernel += ConstantKernel(
+                constant_value=params["c3_trans"], constant_value_bounds="fixed"
+            ) * ThreeBodyKernel(
                 get_kernel_by_name(params["three_body_trans_kernel"])(
                     length_scale=params["three_body_trans_length_scale"],
                     length_scale_bounds="fixed",
@@ -115,7 +129,7 @@ def build_model(
     else:
         raise NotImplementedError(f"Unknown model type {model_type}")
     model = GaussianProcessRegressor(
-        kernel=kernel, alpha=params["l2"], normalize_y=True
+        kernel=kernel, alpha=params["lambda"], normalize_y=True
     )
     return model
 
@@ -156,11 +170,12 @@ def main(model_type: ModelType, target: TargetProperty, random_seed=0):
 
     # Define the hyperparameter space. This first part is common to all kernel models
     space = {
-        "l2": hp.loguniform("l2", np.log(1e-3), np.log(1e3)),
+        "lambda": hp.loguniform("lambda", np.log(1e-1), np.log(1e3)),
     }
     if model_type is ModelType.STANDARD_RACS:
         space.update(
             {
+                "c": hp.loguniform("c", np.log(1e-3), np.log(1e3)),
                 "kernel": hp.choice("kernel", ["RBF", "Matern"]),
                 "length_scale": hp.loguniform(
                     "length_scale", np.log(1e-3), np.log(1e3)
@@ -170,6 +185,7 @@ def main(model_type: ModelType, target: TargetProperty, random_seed=0):
     elif model_type is ModelType.TWO_BODY:
         space.update(
             {
+                "c2": hp.loguniform("c2", np.log(1e-3), np.log(1e3)),
                 "two_body_kernel": hp.choice("two_body_kernel", ["RBF", "Matern"]),
                 "two_body_length_scale": hp.loguniform(
                     "two_body_length_scale", np.log(1e-3), np.log(1e3)
@@ -185,6 +201,7 @@ def main(model_type: ModelType, target: TargetProperty, random_seed=0):
             two_body_params = json.load(file)
         space.update(
             {
+                "c2": two_body_params["c2"],
                 "two_body_kernel": two_body_params["two_body_kernel"],
                 "two_body_length_scale": two_body_params["two_body_length_scale"],
             }
@@ -192,12 +209,14 @@ def main(model_type: ModelType, target: TargetProperty, random_seed=0):
         # Three body hyperspace
         space.update(
             {
+                "c3_cis": hp.loguniform("c3_cis", np.log(1e-3), np.log(1e3)),
                 "three_body_cis_kernel": hp.choice(
                     "three_body_cis_kernel", ["RBF", "Matern"]
                 ),
                 "three_body_cis_length_scale": hp.loguniform(
                     "three_body_cis_length_scale", np.log(1e-3), np.log(1e3)
                 ),
+                "c3_trans": hp.loguniform("c3_trans", np.log(1e-3), np.log(1e3)),
                 "three_body_trans_kernel": hp.choice(
                     "three_body_trans_kernel", ["RBF", "Matern"]
                 ),
@@ -252,6 +271,6 @@ def main(model_type: ModelType, target: TargetProperty, random_seed=0):
 
 if __name__ == "__main__":
     # See the definition of the two enums in mbeml.constants for possible values
-    model_type = ModelType.TWO_BODY
+    model_type = ModelType.STANDARD_RACS
     target = TargetProperty.SSE
     main(model_type, target)
