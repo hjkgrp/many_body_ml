@@ -32,14 +32,14 @@ def load_data_krr(data_dir: Path, features: LigandFeatures, target: TargetProper
     df_train = pd.read_csv(data_dir / "training_data.csv")
     df_val = pd.read_csv(data_dir / "validation_data.csv")
 
-    ligs_train = get_ligand_features(df_train, features)
-    ligs_val = get_ligand_features(df_val, features)
+    ligs_train = get_ligand_features(df_train, features, remove_trivial=True)
+    ligs_val = get_ligand_features(df_val, features, remove_trivial=True)
     if features is LigandFeatures.STANDARD_RACS:
         racs_norm = np.max(np.abs(ligs_train), axis=0)
         racs_norm[racs_norm < 1e-6] = 1.0
     elif features is LigandFeatures.LIGAND_RACS:
         racs_norm = np.max(
-            np.abs(ligs_train.reshape((len(df_train), 6, 33))),
+            np.abs(ligs_train.reshape((len(df_train), 6, -1))),
             axis=(0, 1),
         )
         racs_norm[racs_norm < 1e-6] = 1.0
