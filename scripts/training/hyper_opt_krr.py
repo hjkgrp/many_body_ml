@@ -146,7 +146,7 @@ def evaluate_single_point(
     return {"loss": val_mae, "status": STATUS_OK}
 
 
-def main(model_type: ModelType, target: TargetProperty):
+def main(model_type: ModelType, target: TargetProperty, random_seed=0):
     data_dir = Path("../../data/")
     models_dir = Path("../../models")
 
@@ -225,6 +225,7 @@ def main(model_type: ModelType, target: TargetProperty):
         space,
         algo=tpe.suggest,
         max_evals=max_evals,
+        rstate=np.random.default_rng(random_seed),
     )
 
     final_params = space_eval(space, best_params)
