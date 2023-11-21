@@ -18,10 +18,10 @@ def data_prep(
     y = df[target.full_name()].values.reshape(len(df), -1)
 
     core_features = get_core_features(df)
-    racs_features = get_ligand_features(df, features=features)
+    racs_features = get_ligand_features(df, features=features, remove_trivial=True)
     if is_nn:
         if features is LigandFeatures.LIGAND_RACS:
-            racs_features = racs_features.reshape(len(df), 6, 33)
+            racs_features = racs_features.reshape(len(df), 6, -1)
         X = {"core": core_features, "ligands": racs_features}
     else:
         X = np.concatenate([core_features, racs_features], axis=-1)
@@ -63,13 +63,15 @@ def main():
         Experiment(name="krr_standard_racs", features=LigandFeatures.STANDARD_RACS),
         Experiment(name="krr_two_body", features=LigandFeatures.LIGAND_RACS),
         Experiment(name="krr_three_body", features=LigandFeatures.LIGAND_RACS),
-        Experiment(
-            name="nn_standard_racs", features=LigandFeatures.STANDARD_RACS, is_nn=True
-        ),
-        Experiment(name="nn_two_body", features=LigandFeatures.LIGAND_RACS, is_nn=True),
-        Experiment(
-            name="nn_three_body", features=LigandFeatures.LIGAND_RACS, is_nn=True
-        ),
+        # Experiment(
+        #    name="nn_standard_racs", features=LigandFeatures.STANDARD_RACS, is_nn=True
+        # ),
+        # Experiment(
+        #    name="nn_two_body", features=LigandFeatures.LIGAND_RACS, is_nn=True
+        # ),
+        # Experiment(
+        #    name="nn_three_body", features=LigandFeatures.LIGAND_RACS, is_nn=True
+        # ),
     ]
 
     for experiment in experiments:

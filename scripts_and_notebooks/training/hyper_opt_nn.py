@@ -28,14 +28,14 @@ def load_data_nn(data_dir: Path, features: LigandFeatures, target: TargetPropert
     df_train = pd.read_csv(data_dir / "training_data.csv")
     df_val = pd.read_csv(data_dir / "validation_data.csv")
 
-    ligs_train = get_ligand_features(df_train, features)
-    ligs_val = get_ligand_features(df_val, features)
+    ligs_train = get_ligand_features(df_train, features, remove_trivial=True)
+    ligs_val = get_ligand_features(df_val, features, remove_trivial=True)
     if features is LigandFeatures.STANDARD_RACS:
         racs_norm = np.max(np.abs(ligs_train), axis=0)
         racs_norm[racs_norm < 1e-6] = 1.0
     elif features is LigandFeatures.LIGAND_RACS:
-        ligs_train = ligs_train.reshape((len(df_train), 6, 33))
-        ligs_val = ligs_val.reshape((len(df_val), 6, 33))
+        ligs_train = ligs_train.reshape((len(df_train), 6, -1))
+        ligs_val = ligs_val.reshape((len(df_val), 6, -1))
         racs_norm = np.max(
             np.abs(ligs_train),
             axis=(0, 1),
@@ -80,6 +80,7 @@ def build_model(
     ligands_norm=None,
     output_norm=None,
     spin_dependent=False,
+    num_ligand_features=None,
     num_outputs=1,
     **model_kws,
 ):
@@ -91,6 +92,7 @@ def build_model(
             racs_norm=ligands_norm,
             output_norm=output_norm,
             spin_dependent=spin_dependent,
+            num_ligand_features=num_ligand_features,
             num_outputs=num_outputs,
         )
     elif model_type is ModelType.TWO_BODY:
@@ -101,6 +103,7 @@ def build_model(
             racs_norm=ligands_norm,
             output_norm=output_norm,
             spin_dependent=spin_dependent,
+            num_ligand_features=num_ligand_features,
             num_outputs=num_outputs,
         )
     elif model_type is ModelType.THREE_BODY:
@@ -112,6 +115,7 @@ def build_model(
             racs_norm=ligands_norm,
             output_norm=output_norm,
             spin_dependent=spin_dependent,
+            num_ligand_features=num_ligand_features,
             num_outputs=num_outputs,
             masked=False,
             features_sym=True,
@@ -128,10 +132,11 @@ def train_model(
         model_type,
         hidden_units=params["hidden_units"],
         dropout_rate=params["dropout"],
-        l2=10 ** params["l2"],
+        l2=10 ** params["lambda"],
         spin_dependent=y_train.shape[-1] == 2,
         ligands_norm=ligands_norm,
         output_norm=target_norm,
+        num_ligand_features=X_train["ligands"].shape[-1],
         num_outputs=4 if y_train.shape[-1] == 4 else 1,
     )
     # Build model by calling it
@@ -248,7 +253,7 @@ def evaluate_single_point(
     return {"loss": val_mae, "status": STATUS_OK}
 
 
-def main(model_type: ModelType, target: TargetProperty):
+def main(model_type: ModelType, target: TargetProperty, random_seed=0):
     data_dir = Path("../../data/")
     models_dir = Path("../../models")
 
@@ -259,7 +264,7 @@ def main(model_type: ModelType, target: TargetProperty):
     # Define the hyperparameter space.
     space = {
         "hidden_units": hp.choice("hidden_units", [[64, 64], [128, 128], [256, 256]]),
-        "l2": hp.quniform("l2", -5, 0, 1),
+        "lambda": hp.quniform("lambda", -5, 0, 1),
         "dropout": hp.quniform("dropout", 0.0, 0.6, 0.1),
         "batch_size": hp.choice("batch_size", [64, 128, 256]),
     }
@@ -275,13 +280,15 @@ def main(model_type: ModelType, target: TargetProperty):
         target_norm=target_norm,
     )
 
-    max_evals = 10
+    max_evals = 100
     best_params = fmin(
         objective_func,
         space,
         algo=tpe.suggest,
         max_evals=max_evals,
+        rstate=np.random.default_rng(random_seed),
     )
+    tf.keras.utils.set_random_seed(random_seed)
 
     final_params = space_eval(space, best_params)
     print("best_params: ", final_params)
@@ -329,6 +336,6 @@ def main(model_type: ModelType, target: TargetProperty):
 
 if __name__ == "__main__":
     # See the definition of the two enums in mbeml.constants for possible values
-    model_type = ModelType.THREE_BODY
+    model_type = ModelType.STANDARD_RACS
     target = TargetProperty.SSE
     main(model_type, target)
