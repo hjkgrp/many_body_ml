@@ -14,13 +14,15 @@ def build_mlp(
     hidden_units=(64, 32),
     num_outputs=1,
     activation="softplus",
-    kernel_regularizer=tf.keras.regularizers.L2(),
+    kernel_regularizer=None,
     dense_kw=None,
     final_kw=None,
     dropout_rate: float = 0.0,
     name: str = "mlp",
 ):
     layers = []
+    if kernel_regularizer is None:
+        kernel_regularizer = tf.keras.regularizers.L2()
     if dense_kw is None:
         dense_kw = {}
     if final_kw is None:
