@@ -280,6 +280,9 @@ def main(model_type: ModelType, target: TargetProperty, random_seed=0):
         target_norm=target_norm,
     )
 
+    tf.keras.utils.set_random_seed(random_seed)
+    tf.config.experimental.enable_op_determinism()
+
     max_evals = 100
     best_params = fmin(
         objective_func,
@@ -288,7 +291,6 @@ def main(model_type: ModelType, target: TargetProperty, random_seed=0):
         max_evals=max_evals,
         rstate=np.random.default_rng(random_seed),
     )
-    tf.keras.utils.set_random_seed(random_seed)
 
     final_params = space_eval(space, best_params)
     print("best_params: ", final_params)
@@ -336,6 +338,6 @@ def main(model_type: ModelType, target: TargetProperty, random_seed=0):
 
 if __name__ == "__main__":
     # See the definition of the two enums in mbeml.constants for possible values
-    model_type = ModelType.STANDARD_RACS
+    model_type = ModelType.THREE_BODY
     target = TargetProperty.SSE
     main(model_type, target)
