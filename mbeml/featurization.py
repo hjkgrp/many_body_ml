@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from typing import Optional, List, Tuple
-from mbeml.constants import LigandFeatures
+from mbeml.constants import LigandFeatures, TargetProperty
 
 
 def generate_standard_racs_names(
@@ -120,3 +120,22 @@ def get_core_features(df):
     return np.array(
         [core_encoding[(metal, ox)] for metal, ox in df[["metal", "ox"]].values]
     )
+
+
+def data_prep(
+    df: pd.DataFrame,
+    features: LigandFeatures,
+    target: TargetProperty,
+    is_nn: bool = False,
+):
+    y = df[target.full_name()].values.reshape(len(df), -1)
+
+    core_features = get_core_features(df)
+    racs_features = get_ligand_features(df, features=features, remove_trivial=True)
+    if is_nn:
+        if features is LigandFeatures.LIGAND_RACS:
+            racs_features = racs_features.reshape(len(df), 6, -1)
+        X = {"core": core_features, "ligands": racs_features}
+    else:
+        X = np.concatenate([core_features, racs_features], axis=-1)
+    return X, y
