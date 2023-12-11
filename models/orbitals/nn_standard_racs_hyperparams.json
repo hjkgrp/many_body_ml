@@ -1,1 +1,1 @@
-{"batch_size": 64, "dropout": 0.1, "hidden_units": [256, 256], "l2": -5.0}
+{"batch_size": 64, "dropout": 0.1, "hidden_units": [256, 256], "lambda": -5.0}
