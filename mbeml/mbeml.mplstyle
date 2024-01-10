@@ -57,13 +57,15 @@ mathtext.fallback : cm
 
 
 ### AXES
-axes.prop_cycle  : cycler('color', ['FF0000', '0000FF', '00C440', 'FFA550', '8C8C8C', '00FFFF'])
+axes.prop_cycle  : cycler('color', ['FF0000', '0000FF', '00C440', '8C8C8C', 'FFA550', '00FFFF'])
 axes.linewidth   : 1.0
-axes.titlesize   : medium
-axes.labelsize   : medium
+axes.titlesize   : 10
+axes.labelsize   : 10
 
 
 ### TICKS
+xtick.top:           True
+xtick.bottom:        True
 xtick.direction      : in
 xtick.major.width    : 1.0
 xtick.minor.width    : 1.0
@@ -71,6 +73,8 @@ xtick.major.size     : 4
 xtick.minor.size     : 2
 xtick.labelsize      : 9
 
+ytick.left:          True
+ytick.right:         True
 ytick.direction      : in
 ytick.major.width    : 1.0
 ytick.minor.width    : 1.0
@@ -88,7 +92,7 @@ legend.handlelength  : 1.5
 legend.handleheight  : 0.7
 legend.handletextpad : 0.5
 legend.columnspacing : 1.0
-legend.fontsize      : 10
+legend.fontsize      : 9
 
 ### FIGURE
 figure.figsize   : 3.33, 2.22    # figure size in inches
