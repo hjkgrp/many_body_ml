@@ -31,9 +31,6 @@ from hyperopt import fmin, hp, tpe, STATUS_OK, space_eval
 from functools import partial
 
 
-# Enums used to specify which model type to train on which target values
-
-
 def load_data_krr(data_dir: Path, features: LigandFeatures, target: TargetProperty):
     df_train = pd.read_csv(data_dir / "training_data.csv")
     df_val = pd.read_csv(data_dir / "validation_data.csv")
