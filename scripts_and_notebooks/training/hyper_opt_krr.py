@@ -167,7 +167,7 @@ def main(model_type: ModelType, target: TargetProperty, random_seed=0):
 
     # Define the hyperparameter space. This first part is common to all kernel models
     space = {
-        "lambda": hp.loguniform("lambda", np.log(1e-1), np.log(1e3)),
+        "lambda": hp.loguniform("lambda", np.log(1e-3), np.log(1e3)),
     }
     if model_type is ModelType.STANDARD_RACS:
         space.update(
