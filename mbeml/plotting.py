@@ -6,7 +6,9 @@ color_dict = {"cr": "C0", "mn": "C1", "fe": "C2", "co": "C3"}
 marker_dict = {"2": "o", "3": "d"}
 
 
-def core_legend(ax, scatter_kwargs=None, legend_kwargs=None):
+def core_legend(ax, order=None, scatter_kwargs=None, legend_kwargs=None):
+    if order is None:
+        order = list(range(6))
     if scatter_kwargs is None:
         scatter_kwargs = dict(alpha=0.5, edgecolors="none", s=20)
     if legend_kwargs is None:
@@ -39,18 +41,30 @@ def core_legend(ax, scatter_kwargs=None, legend_kwargs=None):
         )
         labels.append(ox)
 
+    kwargs = {
+        "ncols": 6,
+        "handler_map": {tuple: HandlerTuple(ndivide=None, pad=-0.1)},
+    }
+    kwargs.update(legend_kwargs)
+
     legend = ax.legend(
-        handles,
-        labels,
-        ncols=6,
-        handler_map={tuple: HandlerTuple(ndivide=None, pad=-0.1)},
-        **legend_kwargs,
+        [handles[i] for i in order],
+        [labels[i] for i in order],
+        **kwargs,
     )
     return legend
 
 
 def scatter_random_z(
-    ax, x, y, colors=None, markers=None, rng=np.random.default_rng(0), **scatter_kwargs
+    ax,
+    x,
+    y,
+    colors=None,
+    markers=None,
+    rng=np.random.default_rng(0),
+    yerr=None,
+    errorbar_kwargs=None,
+    **scatter_kwargs,
 ):
     """Solves the issue of layered scatter plots by choosing a random order and plotting
     all points individually
@@ -67,10 +81,18 @@ def scatter_random_z(
         Array of colors, by default None
     markers : numpy.ndarray, optional
         Array of markers, by default None
+    yerr : numpy.ndarray, optional
+        Array of error bars on y
+    errorbar_kwargs : dict, optional
+        Dictionary of keyword arguments to be passed to plt.errorbar()
     """
+    if errorbar_kwargs is None:
+        errorbar_kwargs = {}
     indices = rng.permutation(range(len(x)))
     for i in indices:
         ax.scatter(x[i], y[i], color=colors[i], marker=markers[i], **scatter_kwargs)
+        if yerr is not None:
+            ax.errorbar(x[i], y[i], yerr=yerr[i], color=colors[i], **errorbar_kwargs)
 
 
 def interpolation_plot(ax, x, y, color, alpha_cis=0.4, alpha_trans=0.8, **plot_kwargs):
