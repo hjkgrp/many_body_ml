@@ -17,6 +17,9 @@ cis_pairs = [
 ]
 trans_pairs = [(0, 2), (1, 3), (4, 5)]
 
+unique_cores = ["cr3", "cr2", "mn3", "mn2", "fe3", "fe2", "co3", "co2"]
+roman_numerals = {"2": "II", "3": "III"}
+
 target_full_names = {
     "sse": ["spin_splitting_kcal/mol"],
     "homo": ["energetic_homo_ls_eV", "energetic_homo_hs_eV"],
