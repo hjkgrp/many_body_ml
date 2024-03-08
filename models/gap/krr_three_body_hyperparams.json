@@ -1,0 +1,1 @@
+{"c2": 1.4390993968140993, "c3_cis": 43.604273952990546, "c3_trans": 295.0008489894213, "lambda": 1.8858812634665816, "three_body_cis_kernel": "Matern", "three_body_cis_length_scale": 0.0013670416045149546, "three_body_trans_kernel": "Matern", "three_body_trans_length_scale": 5.006232098834155, "two_body_kernel": "Matern", "two_body_length_scale": 0.4188511340284457}
