@@ -55,6 +55,55 @@ def core_legend(ax, order=None, scatter_kwargs=None, legend_kwargs=None):
     return legend
 
 
+def isomer_legend(ax, alpha_cis=0.8, alpha_trans=0.4, legend_kwargs=None):
+    if legend_kwargs is None:
+        legend_kwargs = dict(loc="upper left")
+
+    isomer_handles = []
+    isomer_labels = ["cis/fac", "trans/mer"]
+
+    for fillstyle, linestyle, alpha in [
+        ("left", (0, (2, 1)), alpha_cis),
+        ("right", (0, (1, 2)), alpha_trans),
+    ]:
+        markers = tuple(
+            ax.scatter(
+                [],
+                [],
+                marker=MarkerStyle(marker_dict[ox], fillstyle=fillstyle),
+                edgecolors="k",
+                facecolor="none",
+                linewidth=0.5,
+                alpha=alpha,
+                s=20,
+            )
+            for ox in ["2", "3"]
+        )
+        # Add the line
+        (line,) = ax.plot([], [], linestyle=linestyle, color="k", alpha=alpha)
+        isomer_handles.append((line, markers))
+
+    kwargs = {
+        "markerscale": 1.0,
+        "handlelength": 1.3,
+        "handletextpad": 0.2,
+        "scatteryoffsets": [0.5],
+        "handler_map": {
+            isomer_handles[-2]: HandlerTuple(),
+            isomer_handles[-1]: HandlerTuple(),
+            tuple: HandlerTuple(ndivide=2, pad=0.0),
+        },
+    }
+    kwargs.update(legend_kwargs)
+
+    legend = ax.legend(
+        isomer_handles,
+        isomer_labels,
+        **kwargs,
+    )
+    return legend
+
+
 def scatter_random_z(
     ax,
     x,
