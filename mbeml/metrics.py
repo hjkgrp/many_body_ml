@@ -11,3 +11,11 @@ def mean_negative_log_likelihood(y_true, y_mean, y_std):
         ((y_true - y_mean) ** 2) / (2 * y_std**2)
         - np.log(1 / np.sqrt(2 * np.pi * y_std**2))
     )
+
+
+def max_absolute_error(y_true, y_mean):
+    return np.max(np.abs(y_true - y_mean))
+
+
+def std_absolute_error(y_true, y_mean):
+    return np.std(np.abs(y_true - y_mean))
