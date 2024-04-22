@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from sklearn.gaussian_process.kernels import RBF
-from mbeml.kernels import TwoBodyKernel, TwoBodyKernelNaive
+from mbeml.kernels import Masking, TwoBodyKernel, TwoBodyKernelNaive
 
 
 @pytest.fixture
@@ -21,12 +21,23 @@ def test_two_body_kernel(test_data):
     np.testing.assert_allclose(kernel(X, Y), kernel_naive(X, Y))
 
 
+def test_two_body_kernel_composability(test_data):
+    X, Y = test_data
+    kernel_ref = TwoBodyKernel(RBF())
+    kernel = Masking(slice(0, 7), RBF()) * Masking(
+        slice(7, None), TwoBodyKernel(RBF(), n_core_features=0)
+    )
+
+    np.testing.assert_allclose(kernel(X), kernel_ref(X))
+    np.testing.assert_allclose(kernel(X, Y), kernel_ref(X, Y))
+
+
 def test_two_body_kernel_gradient(test_data):
     X, _ = test_data
-    kernel = TwoBodyKernel(RBF())
+    kernel = TwoBodyKernel(RBF(length_scale=1.5))
     _, K_grad = kernel(X, eval_gradient=True)
-    kernel_naive = TwoBodyKernelNaive(RBF())
-    l0 = np.exp(kernel.theta)
+    kernel_naive = TwoBodyKernelNaive(RBF(length_scale=1.5))
+    l0 = np.exp(kernel_naive.theta)
     delta_l = 1e-4
 
     kernel_naive.theta = np.log(l0 + 0.5 * delta_l)
@@ -35,7 +46,10 @@ def test_two_body_kernel_gradient(test_data):
     K_minus = kernel_naive(X)
     kernel_naive.theta = np.log(l0)
 
-    K_grad_num = (K_plus - K_minus) / delta_l
+    # Since we are looking for the gradient with respect to log(theta), we need to
+    # apply the chain rule and divide by the derivative of the log function, i.e.,
+    # multiply by l0
+    K_grad_num = (K_plus - K_minus) / delta_l * l0
     np.testing.assert_allclose(K_grad_num, K_grad.squeeze(), atol=1e-6)
 
 
