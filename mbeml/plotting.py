@@ -6,9 +6,16 @@ color_dict = {"cr": "C0", "mn": "C1", "fe": "C2", "co": "C3"}
 marker_dict = {"2": "o", "3": "d"}
 
 
-def core_legend(ax, order=None, scatter_kwargs=None, legend_kwargs=None):
+def core_legend(
+    ax,
+    metals=["cr", "mn", "fe", "co"],
+    order=None,
+    scatter_kwargs=None,
+    legend_kwargs=None,
+):
     if order is None:
-        order = list(range(6))
+        # Metals plus two for the oxidation states
+        order = list(range(len(metals) + 2))
     if scatter_kwargs is None:
         scatter_kwargs = dict(alpha=0.5, edgecolors="none", s=20)
     if legend_kwargs is None:
@@ -16,7 +23,8 @@ def core_legend(ax, order=None, scatter_kwargs=None, legend_kwargs=None):
 
     handles = []
     labels = []
-    for metal, color in color_dict.items():
+    for metal in metals:
+        color = color_dict[metal]
         handles.append(
             (
                 ax.scatter(
