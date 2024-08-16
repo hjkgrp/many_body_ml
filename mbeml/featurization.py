@@ -1,7 +1,6 @@
 import operator
 import numpy as np
 import pandas as pd
-from ase.atoms import Atoms
 from typing import Optional, List, Tuple
 from itertools import permutations
 from molSimplify.Classes.mol2D import Mol2D
@@ -131,19 +130,6 @@ def sort_connecting_atoms(atoms, c_atoms, cis_threshold=22.5):
         if all(abs(angles - 90.0) < cis_threshold):
             return [c0, c1, c2, c3, c4, c5]
     raise ValueError("Cannot find octahedral arangement of connecting atoms")
-
-
-def get_ligand_racs_vector(atoms: Atoms, mol: Mol2D, depth: int = 3):
-    connecting_atoms = sort_connecting_atoms(atoms, list(mol.neighbors(0)))
-
-    split_graph = mol.copy()
-    # Remove edges from center (index 0) to the connecting atoms
-    split_graph.remove_edges_from([(0, c) for c in connecting_atoms])
-
-    racs = []
-    for c in connecting_atoms:
-        racs.append(featurize_single_ligand(split_graph, c, depth=depth))
-    return racs
 
 
 def featurize_single_ligand(lig: Mol2D, connecting_atom: int, depth: int = 3):
