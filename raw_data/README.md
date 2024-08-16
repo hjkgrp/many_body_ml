@@ -1,0 +1,2 @@
+For hjk_group reference:  
+all the `.xyz` files in the subfolders are TeraChem optimized geometries. However, since they have been analysed by MolSimplify and then written out again they contain the typical MolSimplify comment line instead of the TeraChem optimization step information.
