@@ -1,7 +1,18 @@
+import operator
 import numpy as np
 import pandas as pd
+from ase.atoms import Atoms
 from typing import Optional, List, Tuple
-from mbeml.constants import LigandFeatures, TargetProperty
+from itertools import permutations
+from molSimplify.Classes.mol2D import Mol2D
+from molSimplify.Informatics.graph_racs import atom_centered_AC
+from mbeml.constants import (
+    LigandFeatures,
+    TargetProperty,
+    atomic_numbers,
+    covalent_radii,
+    electronegativity,
+)
 
 
 def generate_standard_racs_names(
@@ -61,8 +72,8 @@ def generate_ligand_racs_names(
 ) -> List[str]:
     names = []
     # Unfortunately the ordering of RACS here is different
-    # to standard RACs because of different implementations in
-    # molSimplify vs tmc_tools
+    # to standard RACs because of different implementations for
+    # mol2D versus mol3D
     if properties is None:
         properties = ["Z", "chi", "T", "I", "S"]
     for i in range(1, 7):
@@ -88,13 +99,6 @@ def generate_ligand_racs_names(
     return names
 
 
-def generate_ligand_racs_names_old():
-    names = []
-    for i in range(1, 7):
-        names.extend([f"lig{i}_charge"] + [f"lig{i}_racs{j:02d}" for j in range(32)])
-    return names
-
-
 def get_ligand_features(df: pd.DataFrame, features: LigandFeatures, **kwargs):
     if features is LigandFeatures.STANDARD_RACS:
         racs_names = generate_standard_racs_names(**kwargs)
@@ -103,6 +107,99 @@ def get_ligand_features(df: pd.DataFrame, features: LigandFeatures, **kwargs):
     else:
         raise NotImplementedError(f"Unknown features {features}")
     return df[racs_names].values
+
+
+def sort_connecting_atoms(atoms, c_atoms, cis_threshold=22.5):
+    assert len(c_atoms) == 6
+    for c0, c1, c2, c3, c4, c5 in permutations(c_atoms, 6):
+        angles = atoms.get_angles(
+            [
+                [c0, 0, c1],
+                [c1, 0, c2],
+                [c2, 0, c3],
+                [c3, 0, c0],
+                [c0, 0, c4],
+                [c1, 0, c4],
+                [c2, 0, c4],
+                [c3, 0, c4],
+                [c0, 0, c5],
+                [c1, 0, c5],
+                [c2, 0, c5],
+                [c3, 0, c5],
+            ]
+        )
+        if all(abs(angles - 90.0) < cis_threshold):
+            return [c0, c1, c2, c3, c4, c5]
+    raise ValueError("Cannot find octahedral arangement of connecting atoms")
+
+
+def get_ligand_racs_vector(atoms: Atoms, mol: Mol2D, depth: int = 3):
+    connecting_atoms = sort_connecting_atoms(atoms, list(mol.neighbors(0)))
+
+    split_graph = mol.copy()
+    # Remove edges from center (index 0) to the connecting atoms
+    split_graph.remove_edges_from([(0, c) for c in connecting_atoms])
+
+    racs = []
+    for c in connecting_atoms:
+        racs.append(featurize_single_ligand(split_graph, c, depth=depth))
+    return racs
+
+
+def featurize_single_ligand(lig: Mol2D, connecting_atom: int, depth: int = 3):
+    # 5 properties x (depth + 1) for product racs
+    # + 4 properties x depth for difference racs
+    rac_vector = np.zeros(5 * (depth + 1) + 4 * depth)
+    rac_vector[: 5 * (depth + 1)] = atom_centered_AC(
+        lig,
+        connecting_atom,
+        depth=depth,
+        property_fun=ligand_racs_property_vector,
+    ).T.flatten()  # Product racs
+    # Difference racs, drop depth 0 and identity property
+    rac_vector[5 * (depth + 1) :] = (
+        atom_centered_AC(
+            lig,
+            connecting_atom,
+            depth=depth,
+            property_fun=ligand_racs_property_vector,
+            operation=operator.sub,
+        )
+        .T[1:, [True, True, True, False, True]]
+        .flatten()
+    )
+    return rac_vector
+
+
+def ligand_racs_property_vector(mol: Mol2D, node: int) -> np.ndarray:
+    """Calculates the property vector for a given node (atom) in a molecular graph.
+
+    Parameters
+    ----------
+    mol : Mol2D
+        molecular graph
+    node : int
+        index of the node
+
+    Returns
+    -------
+    np.ndarray
+        property vector of the node
+    """
+    output = np.zeros(5)
+    symbol = mol.nodes[node]["symbol"]
+    Z = atomic_numbers[symbol]
+    # property (i): nuclear charge Z
+    output[0] = Z
+    # property (ii): Pauling electronegativity chi
+    output[1] = electronegativity[Z]
+    # property (iii): topology T, coordination number
+    output[2] = len(list(mol.neighbors(node)))
+    # property (iv): identity
+    output[3] = 1.0
+    # property (v): covalent radius S
+    output[4] = covalent_radii[Z]
+    return output
 
 
 def get_core_features(df):
