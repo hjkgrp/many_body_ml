@@ -25,6 +25,7 @@ dependencies = [
   "matplotlib==3.7.5",
   "molSimplify==1.7.5",
   "ase==3.23.0",
+  "shap==0.44.1",
   "pytest",
 ]
 

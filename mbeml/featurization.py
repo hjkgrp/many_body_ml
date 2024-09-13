@@ -222,3 +222,59 @@ def data_prep(
     else:
         X = np.concatenate([core_features, racs_features], axis=-1)
     return X, y
+
+
+def latexify_standard_RAC(s: str):
+    difference_RAC = "D_" in s
+    # Remove the prefix "D_" if present (workaround because str.removeprefix is python > 3.9)
+    s = s.split("_")[-1]
+    # Split into the components
+    start, prop, depth, scope = s.split("-")
+    if scope in ["ax", "eq"]:
+        start = start.replace("f", "lig")
+    # Replace chi with proper greek letter
+    prop = prop.replace("chi", r"$\chi$")
+    # And reassemble according to the definitions in the paper
+    s = f"$^\\mathrm{{{start}}}_\\mathrm{{{scope}}}${prop}"
+    if difference_RAC:
+        s = f"{s}$^\\prime_{depth}$"
+    else:
+        s = f"{s}$_{depth}$"
+    return s
+
+
+def latexify_ligand_RAC(s: str):
+    if "charge" in s:
+        return s
+    lig, op, prop, depth = s.split("_")
+    # Replace chi with proper greek letter
+    prop = prop.replace("chi", r"$\chi$")
+    if op == "P":
+        return f"{lig}_{prop}$_{depth}$"
+    return f"{lig}_{prop}$^\\prime_{depth}$"
+
+
+def latexify_feature_name(s: str):
+    if s.startswith("lig"):
+        return latexify_ligand_RAC(s)
+    if len(s.split("-")) == 4:
+        return latexify_standard_RAC(s)
+    return s
+
+
+def latex_feature_names(ligand_features: LigandFeatures):
+    # Start with core features
+    core_names = ["M(II)", "M(III)", "d3", "d4", "d5", "d6", "d7"]
+
+    if ligand_features == LigandFeatures.STANDARD_RACS:
+        return [
+            latexify_feature_name(s)
+            for s in core_names + generate_standard_racs_names(remove_trivial=True)
+        ]
+    elif ligand_features == LigandFeatures.LIGAND_RACS:
+        return [
+            latexify_feature_name(s)
+            for s in core_names + generate_ligand_racs_names(remove_trivial=True)
+        ]
+    else:
+        raise NotImplementedError(f"Unknown ligand features {ligand_features}")
