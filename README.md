@@ -18,3 +18,4 @@ pip install -e .
     - Fig. 2: `interpolation_plot_sse_horizontal.ipynb` (output: `plots/interpolation_plot_sse_horizontal_krr_1.pdf`)
     - Fig. 3: `parity_plot_sse_ligand_test_horizontal.ipynb` (output: `plots/parity_plot_see_horizontal_lig_test_nn.pdf`)
     - Fig. 4: `interpolation_plot_orbitals.ipynb` (output: `plots/interpolation_plot_homo_ls_nn_1.pdf`)
+    - Fig. 5: `feature_importance_nn_two_body.ipynb` (output: `plots/feature_importance_nn_two_body.pdf`)
